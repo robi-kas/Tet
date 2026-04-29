@@ -20,10 +20,15 @@ import {
   ChevronRight,
   ArrowRightLeft,
   CircleDollarSign,
+  QrCode,
+  Search,
+  Filter,
+  ArrowUpCircle,
   Menu,
   X
 } from 'lucide-react';
 import { cn, apiCall } from './lib/utils';
+import { QRCodeSVG } from 'qrcode.react';
 
 import { useAccount, useDisconnect, useChainId, useBalance } from 'wagmi';
 import { ConnectKitButton } from 'connectkit';
@@ -33,59 +38,86 @@ import { ConnectKitButton } from 'connectkit';
 const Navbar = ({ user, onLogout }: { user: any; onLogout: () => void }) => {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const chainId = useChainId();
   const location = useLocation();
 
+  const getChainName = (id: number) => {
+    if (id === 56) return 'BSC';
+    if (id === 1) return 'ETH';
+    if (id === 97) return 'T-BSC';
+    return 'NET';
+  };
+
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'System', path: '/system', icon: Shield },
-    { name: 'Team', path: '/team', icon: Users },
-    { name: 'Earnings', path: '/earnings', icon: TrendingUp },
-    { name: 'Admin', path: '/admin', icon: Settings, admin: true },
+    { name: 'Dashboard', path: '/dashboard' },
+    { name: 'System', path: '/system' },
+    { name: 'Team', path: '/team' },
+    { name: 'Earnings', path: '/earnings' },
+    { name: 'Admin', path: '/admin', admin: true },
   ];
 
   return (
-    <nav className="glass sticky top-0 z-50 px-4 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-brand-primary/20 to-brand-secondary/20 flex items-center justify-center border border-brand-primary/30">
-            <Layers className="w-6 h-6 text-brand-primary" />
+    <>
+      <nav className="apple-nav-global">
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between px-6">
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <Layers className="w-5 h-5" />
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            {navItems.map(item => (
+              (!item.admin || user?.role === 'admin') && (
+                <Link 
+                  key={item.path} 
+                  to={item.path} 
+                  className={cn(
+                    "text-[12px] font-normal tracking-[-0.01em] hover:opacity-100 transition-opacity",
+                    location.pathname === item.path ? "opacity-100" : "opacity-60"
+                  )}
+                >
+                  {item.name}
+                </Link>
+              )
+            ))}
           </div>
-          <span className="font-display font-bold text-xl tracking-tight uppercase">80U Matrix</span>
-        </Link>
-
-        {isConnected && user && (
-          <>
-            <div className="hidden md:flex items-center gap-6">
-              {navItems.map((item) => (
-                (!item.admin || user.role === 'admin') && (
-                  <Link 
-                    key={item.path} 
-                    to={item.path}
-                    className={cn(
-                      "text-sm font-medium transition-colors hover:text-brand-primary",
-                      location.pathname === item.path ? "text-brand-primary" : "text-gray-400"
-                    )}
-                  >
-                    {item.name}
-                  </Link>
-                )
-              ))}
+          <div className="flex items-center gap-4">
+             {isConnected && (
+               <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider">{getChainName(chainId)}</span>
+               </div>
+             )}
+             <ConnectKitButton.Custom>
+                {({ isConnected, show, address }) => (
+                  <button onClick={show} className={cn(
+                    "text-[12px] font-medium transition-all px-3 py-1 rounded-full",
+                    isConnected ? "bg-canvas-parchment text-ink" : "bg-primary text-white"
+                  )}>
+                    {isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : 'Connect Wallet'}
+                  </button>
+                )}
+             </ConnectKitButton.Custom>
+             {isConnected && user && (
+               <button onClick={() => { disconnect(); onLogout(); }} className="text-[12px] opacity-60 hover:opacity-100 p-1">
+                 <X className="w-4 h-4" />
+               </button>
+             )}
+          </div>
+        </div>
+      </nav>
+      
+      {location.pathname !== '/' && (
+        <nav className="apple-nav-sub">
+          <div className="max-w-7xl mx-auto w-full flex items-center justify-between px-6">
+            <h2 className="text-[21px] font-semibold tracking-[-0.015em]">
+              {navItems.find(n => n.path === location.pathname)?.name || 'Matrix'}
+            </h2>
+            <div className="flex items-center gap-6">
+               <button className="btn-apple-primary py-1 px-4 text-sm">Action</button>
             </div>
-
-            <div className="flex items-center gap-4">
-              <ConnectKitButton />
-              <button 
-                onClick={() => { disconnect(); onLogout(); }}
-                className="bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-colors"
-                title="Logout"
-              >
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </nav>
+          </div>
+        </nav>
+      )}
+    </>
   );
 };
 
@@ -101,26 +133,83 @@ const Landing = ({ onLogin }: { onLogin: (addr: string) => void }) => {
   }, [isConnected, address]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <span className="inline-block px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-6">
-          Phase 1: Genesis Matrix
-        </span>
-        <h1 className="font-display text-5xl md:text-7xl font-bold mb-6 tracking-tight">
-          Unlock Your Future in the <span className="gradient-text">80U Ecosystem</span>
-        </h1>
-        <p className="text-gray-400 text-lg mb-12 max-w-2xl mx-auto leading-relaxed">
-          The most advanced, configuration-driven matrix system. Start your V1-V10 journey today with just 80U and unlock automated yields and team performance bonuses.
-        </p>
-
-        <div className="flex justify-center scale-150 transform origin-top">
-          <ConnectKitButton />
+    <div className="pt-[44px]">
+      {/* Hero Tile */}
+      <section className="apple-tile-light min-h-[90vh] flex flex-col items-center justify-center text-center">
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.8 }}
+           className="max-w-3xl"
+        >
+          <h1 className="text-[56px] md:text-[80px] font-semibold tracking-[-0.015em] mb-4">80U Matrix</h1>
+          <p className="text-[28px] font-normal leading-tight mb-8">Systematic yield maximization through decentralized networking.</p>
+          <div className="flex items-center justify-center gap-4">
+             <ConnectKitButton.Custom>
+                {({ show }) => (
+                  <button onClick={show} className="btn-apple-primary">Join Genesis</button>
+                )}
+             </ConnectKitButton.Custom>
+             <button className="btn-apple-secondary flex items-center gap-1">Learn more <ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </motion.div>
+        
+        <div className="mt-20 w-full max-w-4xl px-4">
+           <img 
+             src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?q=80&w=2832&auto=format&fit=crop" 
+             alt="Genesis Node" 
+             className="w-full h-auto rounded-3xl product-shadow object-cover aspect-[16/9]"
+           />
         </div>
-      </motion.div>
+      </section>
+
+      {/* Feature Tile 1: Dark */}
+      <section className="apple-tile-dark grid md:grid-cols-2 items-center gap-12">
+        <div className="space-y-6">
+           <h2 className="text-[40px] font-semibold tracking-[-0.015em]">Built on <br/> Immutable Code</h2>
+           <p className="text-[21px] text-gray-400">Our matrix logic is governed by autonomous protocols. No central authority can alter the reward distribution.</p>
+           <Link to="#" className="apple-link-on-dark flex items-center gap-1">View Audit Documentation <ChevronRight className="w-4 h-4" /></Link>
+        </div>
+        <div className="relative">
+           <img 
+             src="https://images.unsplash.com/photo-1642104704074-907c0698cbd9?q=80&w=2832&auto=format&fit=crop" 
+             alt="Tech Grid" 
+             className="w-full h-auto rounded-3xl object-cover aspect-square"
+           />
+        </div>
+      </section>
+
+      {/* Feature Tile 2: Parchment */}
+      <section className="apple-tile-parchment flex flex-col items-center text-center">
+        <div className="max-w-2xl mb-12">
+          <h2 className="text-[40px] font-semibold tracking-[-0.015em] mb-4">The Path to Ascension</h2>
+          <p className="text-[21px] font-normal text-ink-muted-80">From entry at V1 to the Global Partnership at V10, follow the systematic route.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 w-full max-w-7xl">
+           {[
+             { title: 'Connect', desc: 'Link your Web3 wallet.' },
+             { title: 'Activate', desc: 'Secure your Genesis position.' },
+             { title: 'Expand', desc: 'Build your direct network.' },
+             { title: 'Partner', desc: 'Reach V10 Global status.' }
+           ].map((step, i) => (
+             <div key={i} className="text-left space-y-4">
+                <div className="text-[12px] font-semibold uppercase tracking-widest text-ink-muted-48">Step 0{i+1}</div>
+                <h3 className="text-[24px] font-semibold">{step.title}</h3>
+                <p className="text-[17px] text-ink-muted-80">{step.desc}</p>
+             </div>
+           ))}
+        </div>
+      </section>
+
+      {/* Footer-ish Tile */}
+      <section className="apple-tile-light text-center py-40">
+         <h2 className="text-[56px] font-semibold mb-8">Join the Evolution.</h2>
+         <ConnectKitButton.Custom>
+            {({ show }) => (
+              <button onClick={show} className="btn-apple-primary px-12 py-4 text-xl">Get Started Today</button>
+            )}
+         </ConnectKitButton.Custom>
+      </section>
     </div>
   );
 };
@@ -139,7 +228,6 @@ const Dashboard = ({ user }: { user: any }) => {
   const purchaseSeat = async () => {
     setIsPurchasing(true);
     try {
-      // simulated txHash
       const mockHash = `0x${Math.random().toString(16).slice(2)}...`;
       await apiCall('/seats/purchase', {
         method: 'POST',
@@ -153,78 +241,83 @@ const Dashboard = ({ user }: { user: any }) => {
     }
   };
 
-  if (!data) return <div className="p-20 text-center animate-pulse">Loading core engine...</div>;
+  if (!data) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="max-w-7xl mx-auto px-6 py-12 space-y-12 animate-apple-fade">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+           <p className="text-[17px] font-semibold text-primary mb-1">Genesis Network</p>
+           <h1 className="text-[40px] font-semibold tracking-[-0.015em]">Dashboard Overview</h1>
+        </div>
+        <div className="flex items-center gap-3">
+           <button 
+             onClick={purchaseSeat}
+             disabled={isPurchasing}
+             className="btn-apple-primary"
+           >
+             {isPurchasing ? 'Processing...' : 'Activate New Seat'}
+           </button>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Available Balance', value: `${data.balance} U`, icon: CircleDollarSign, color: 'text-brand-primary' },
-          { label: 'Active Seats', value: data.seats.length, icon: Layers, color: 'text-brand-secondary' },
-          { label: 'Current Rank', value: data.seats[0]?.current_level || 'V0', icon: Shield, color: 'text-yellow-400' },
-          { label: 'Total Earnings', value: `${data.earnings.length > 0 ? data.earnings.reduce((a: any, b: any) => a + b.reward_amount, 0) : 0} U`, icon: TrendingUp, color: 'text-white' },
+          { label: 'Available Balance', value: `${data.balance} U`, icon: CircleDollarSign },
+          { label: 'Active Seats', value: data.seats.length, icon: Layers },
+          { label: 'Current Rank', value: data.seats[0]?.current_level || 'V0', icon: Shield },
+          { label: 'Total Earnings', value: `${data.earnings.length > 0 ? data.earnings.reduce((a: any, b: any) => a + b.reward_amount, 0) : 0} U`, icon: TrendingUp },
         ].map((stat, i) => (
-          <motion.div 
-            key={i}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass p-6 rounded-2xl"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <stat.icon className={cn("w-6 h-6", stat.color)} />
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Realtime</span>
-            </div>
-            <p className="text-gray-400 text-xs mb-1 uppercase tracking-wider">{stat.label}</p>
-            <h3 className="text-2xl font-display font-bold">{stat.value}</h3>
-          </motion.div>
+          <div key={i} className="apple-card">
+            <stat.icon className="w-5 h-5 text-primary mb-6" />
+            <p className="text-[14px] font-normal text-ink-muted-48 uppercase tracking-widest mb-1">{stat.label}</p>
+            <h3 className="text-[28px] font-semibold">{stat.value}</h3>
+          </div>
         ))}
       </div>
 
-      {/* Main Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-display text-xl font-bold">Your Active Seats</h2>
-            <button 
-              onClick={purchaseSeat}
-              disabled={isPurchasing}
-              className="bg-brand-primary text-bg-dark text-xs font-bold px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
-            >
-              {isPurchasing ? 'Processing...' : '+ Activate New Seat'}
-            </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* Active Seats Detail */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[24px] font-semibold tracking-[-0.015em]">Your Active Nodes</h2>
+            <Link to="#" className="apple-link text-sm">View all nodes</Link>
           </div>
           
-          <div className="space-y-3">
+          <div className="grid gap-4">
             {data.seats.length === 0 ? (
-              <div className="glass p-12 text-center rounded-2xl border-dashed">
-                <AlertCircle className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">No active seats found. Purchase your first seat to join the matrix.</p>
-              </div>
+               <div className="apple-card py-20 text-center border-dashed">
+                  <p className="text-ink-muted-48">No active seats found. Purchase your first seat to join the matrix.</p>
+               </div>
             ) : (
               data.seats.map((seat: any) => (
-                <div key={seat.id} className="glass p-5 rounded-2xl flex items-center justify-between group hover:border-brand-primary/30 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center font-mono text-xs font-bold">
-                      {seat.seat_number}
+                <div key={seat.id} className="apple-card flex items-center justify-between group">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-2xl bg-canvas-parchment flex items-center justify-center font-display text-xl font-bold product-shadow overflow-hidden">
+                       <img src="https://images.unsplash.com/photo-1639762681057-408e52192e55?q=80&w=2832&auto=format&fit=crop" alt="Node" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="font-bold underline decoration-brand-primary/30 underline-offset-4">{seat.current_level}</h4>
-                        <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded uppercase">{seat.origin.replace('_', ' ')}</span>
+                        <h4 className="text-[17px] font-semibold">{seat.current_level} Node</h4>
+                        <span className="text-[10px] bg-canvas-parchment px-2 py-0.5 rounded uppercase font-bold text-ink-muted-48">{seat.origin.replace('_', ' ')}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">Activated on {new Date(seat.created_at).toLocaleDateString()}</p>
+                      <p className="text-[14px] text-ink-muted-48 mt-0.5">Activated Node #{seat.seat_number}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-xs font-medium text-gray-400">
-                      <Users className="w-3 h-3" />
+                  <div className="text-right flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-1.5 text-[14px] font-medium text-ink-muted-48">
+                      <Users className="w-4 h-4" />
                       <span>{seat.direct_referral_count} Dir</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-brand-primary font-bold mt-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-                      <span className="uppercase">{seat.matrix_status}</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full text-primary text-[10px] font-bold uppercase tracking-widest">
+                       <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                       {seat.matrix_status}
                     </div>
                   </div>
                 </div>
@@ -233,31 +326,30 @@ const Dashboard = ({ user }: { user: any }) => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h2 className="font-display text-xl font-bold">Recent Earnings</h2>
-          <div className="space-y-3">
+        {/* Recent Ledger */}
+        <div className="space-y-6">
+          <h2 className="text-[24px] font-semibold tracking-[-0.015em]">Recent Ledger</h2>
+          <div className="grid gap-3">
             {data.earnings.length === 0 ? (
-              <p className="text-sm text-gray-500 italic p-8 text-center glass rounded-2xl">No earnings yet. Keep building!</p>
+               <div className="apple-card py-12 text-center border-dashed">
+                  <p className="text-sm text-ink-muted-48 italic">No earnings found. Build your team to unlock V1 rewards.</p>
+               </div>
             ) : (
-              data.earnings.slice(0, 5).map((earn: any) => (
-                <div key={earn.id} className="glass p-4 rounded-xl flex items-center justify-between border-l-2 border-l-brand-primary">
+              data.earnings.slice(0, 6).map((earn: any) => (
+                <div key={earn.id} className="apple-card border-none bg-surface-pearl flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-bold text-brand-primary uppercase">{earn.level_code} REWARD</p>
-                    <p className="text-[10px] text-gray-500">{new Date(earn.trigger_time).toLocaleString()}</p>
+                    <p className="text-[14px] font-semibold text-primary mb-0.5">{earn.level_code} REWARD</p>
+                    <p className="text-[12px] text-ink-muted-48">{new Date(earn.trigger_time).toLocaleDateString()}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">+{earn.reward_amount} U</p>
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase",
-                      earn.settlement_status === 'settled' ? "text-brand-primary" : "text-yellow-400"
-                    )}>{earn.settlement_status}</span>
+                    <p className="text-[17px] font-semibold">+{earn.reward_amount} U</p>
                   </div>
                 </div>
               ))
             )}
           </div>
-          <Link to="/earnings" className="text-xs text-gray-400 flex items-center gap-1 hover:text-white transition-colors">
-            View full history <ChevronRight className="w-3 h-3" />
+          <Link to="/earnings" className="text-[14px] apple-link font-medium flex items-center justify-center gap-1">
+            Browse full ledger <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
       </div>
@@ -275,70 +367,56 @@ const SystemRules = () => {
   if (!config) return <div className="p-20 text-center">Loading rules engine...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
+    <div className="max-w-7xl mx-auto px-6 py-12 space-y-16 animate-apple-fade">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="font-display text-4xl font-bold mb-4">Membership Matrix Logic</h2>
-        <p className="text-gray-400">All rules are server-authoritative and dynamically updated by the administration engine.</p>
-        <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10">
-          <span className="text-xs font-mono text-gray-500">Version:</span>
-          <span className="text-xs font-bold text-brand-primary">{config.levels[0]?.version}</span>
-        </div>
+        <p className="text-[17px] font-semibold text-primary mb-2">Protocol</p>
+        <h1 className="text-[48px] font-semibold tracking-[-0.015em] mb-4">Matrix Logic</h1>
+        <p className="text-[21px] text-ink-muted-48">All rules are server-authoritative and governed by autonomous protocols.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {config.levels.sort((a: any, b: any) => a.level_rank - b.level_rank).map((lv: any, i: number) => (
-          <div key={lv.id} className="glass p-8 rounded-3xl relative overflow-hidden group hover:border-brand-primary/40 transition-all">
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-brand-primary/5 rounded-full blur-2xl group-hover:bg-brand-primary/20 transition-all" />
-            
-            <div className="flex items-center justify-between mb-8">
-              <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-brand-primary/20 to-brand-secondary/20 flex items-center justify-center font-display text-2xl font-black text-brand-primary border border-brand-primary/20">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {config.levels.sort((a: any, b: any) => a.level_rank - b.level_rank).map((lv: any) => (
+          <div key={lv.id} className="apple-card group">
+            <div className="flex items-center justify-between mb-10">
+              <div className="w-16 h-16 rounded-2xl bg-canvas-parchment flex items-center justify-center text-[24px] font-bold text-primary product-shadow">
                 {lv.level_code}
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-gray-500 uppercase tracking-tighter">Reward Amount</span>
-                <p className="text-2xl font-display font-bold text-white">{lv.reward_amount} U</p>
+                <span className="text-[12px] text-ink-muted-48 uppercase tracking-widest font-bold">Reward</span>
+                <p className="text-[28px] font-semibold">{lv.reward_amount} U</p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold uppercase text-gray-400 tracking-widest border-b border-white/5 pb-2">Upgrade Path</h4>
-              <ul className="space-y-3">
+            <div className="space-y-6">
+              <h4 className="text-[14px] font-semibold uppercase text-ink-muted-48 tracking-widest border-b border-divider-soft pb-2">Activation Path</h4>
+              <ul className="space-y-4">
                 {lv.min_direct_referral_required > 0 && (
-                  <li className="flex items-center gap-3 text-sm text-gray-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-                    Direct Seat Requirement: <span className="text-white font-bold ml-auto">{lv.min_direct_referral_required}</span>
+                  <li className="flex items-center justify-between text-[17px]">
+                    <span className="text-ink-muted-80">Direct Nodes</span>
+                    <span className="font-semibold">{lv.min_direct_referral_required}</span>
                   </li>
                 )}
                 {lv.direct_v1_required > 0 && (
-                  <li className="flex items-center gap-3 text-sm text-gray-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                    Direct V1 Required: <span className="text-white font-bold ml-auto">{lv.direct_v1_required}</span>
-                  </li>
-                )}
-                {lv.cultivation_level_code && lv.cultivation_count_required > 0 && (
-                  <li className="flex items-center gap-3 text-sm text-gray-300">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-secondary" />
-                    Cultivate {lv.cultivation_count_required} Branches @ <span className="text-white font-bold ml-auto">{lv.cultivation_level_code}</span>
+                  <li className="flex items-center justify-between text-[17px]">
+                    <span className="text-ink-muted-80">Direct V1 Nodes</span>
+                    <span className="font-semibold">{lv.direct_v1_required}</span>
                   </li>
                 )}
                 {lv.performance_reward_rate > 0 && (
-                  <li className="flex items-center gap-3 text-sm text-brand-primary font-bold">
-                    <TrendingUp className="w-4 h-4" />
-                    Team Volume: <span className="ml-auto">{lv.performance_reward_rate}%</span>
+                  <li className="flex items-center justify-between text-[17px] text-primary">
+                    <span className="font-semibold">Team Volume</span>
+                    <span className="font-bold">{lv.performance_reward_rate}%</span>
                   </li>
                 )}
                 {lv.matrix_enabled ? (
-                  <li className="flex items-center gap-3 text-sm text-brand-secondary font-bold italic">
-                    <ArrowRightLeft className="w-4 h-4" />
-                    Public Matrix Path
-                  </li>
+                  <li className="text-[14px] text-primary font-semibold italic">Public Matrix Path Active</li>
                 ) : null}
               </ul>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500">
+            <div className="mt-10 pt-6 border-t border-divider-soft flex items-center justify-between text-[12px] font-bold uppercase tracking-widest text-ink-muted-48">
               <span>Settlement: {lv.reward_settlement_days} Days</span>
-              <span className={cn(lv.is_active ? "text-brand-primary" : "text-red-500")}>
+              <span className={cn(lv.is_active ? "text-green-600" : "text-red-500")}>
                 {lv.is_active ? 'Active' : 'Disabled'}
               </span>
             </div>
@@ -351,84 +429,149 @@ const SystemRules = () => {
 
 const AdminPanel = () => {
   const [rewards, setRewards] = useState<any[]>([]);
+  const [upgradeUserId, setUpgradeUserId] = useState('');
+  const [upgradeLevel, setUpgradeLevel] = useState('V1');
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   useEffect(() => {
     apiCall('/admin/rewards').then(setRewards);
   }, []);
 
+  const handleUpgrade = async () => {
+    if (!upgradeUserId) return;
+    setIsUpgrading(true);
+    try {
+      await apiCall(`/admin/user/${upgradeUserId}/upgrade`, {
+        method: 'POST',
+        body: JSON.stringify({ targetLevel: upgradeLevel })
+      });
+      alert('Upgrade success');
+      window.location.reload();
+    } catch (err) {
+      alert('Upgrade failed');
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-12 space-y-12 animate-apple-fade">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-4xl font-bold">Admin Engine</h2>
-        <span className="px-3 py-1 bg-red-500/10 text-red-500 text-xs font-bold rounded-full border border-red-500/20">System Restricted</span>
+        <div>
+          <p className="text-[17px] font-semibold text-red-600 mb-1">System Administration</p>
+          <h1 className="text-[40px] font-semibold tracking-[-0.015em]">Admin Control</h1>
+        </div>
+        <span className="px-4 py-2 bg-red-50 text-red-600 text-[12px] font-bold rounded-full border border-red-100">Restricted Access</span>
       </div>
 
-      <div className="glass rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 bg-white/2">
-          <h3 className="font-bold flex items-center gap-2">
-            <History className="w-5 h-5 text-brand-primary" />
-            Reward Settlement Queue
-          </h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-1 space-y-6">
+          <div className="apple-card">
+            <h3 className="text-[17px] font-semibold mb-6 flex items-center gap-2">
+              <ArrowUpCircle className="w-5 h-5 text-primary" />
+              Manual Upgrade
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[12px] text-ink-muted-48 uppercase font-bold tracking-widest block mb-2">User ID</label>
+                <input 
+                  type="text" 
+                  value={upgradeUserId}
+                  onChange={(e) => setUpgradeUserId(e.target.value)}
+                  placeholder="Enter User ID"
+                  className="w-full bg-canvas-parchment border border-divider-soft rounded-xl px-4 py-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] text-ink-muted-48 uppercase font-bold tracking-widest block mb-2">Target Rank</label>
+                <select 
+                  value={upgradeLevel}
+                  onChange={(e) => setUpgradeLevel(e.target.value)}
+                  className="w-full bg-canvas-parchment border border-divider-soft rounded-xl px-4 py-3 text-sm appearance-none"
+                >
+                  {['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10'].map(v => (
+                    <option key={v} value={v}>{v} Rank</option>
+                  ))}
+                </select>
+              </div>
+              <button 
+                onClick={handleUpgrade}
+                disabled={isUpgrading}
+                className="w-full btn-apple-primary py-3"
+              >
+                {isUpgrading ? 'Processing...' : 'Execute Upgrade'}
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-white/2 text-[10px] font-bold uppercase text-gray-500 border-b border-white/5">
-              <tr>
-                <th className="p-4">User</th>
-                <th className="p-4">Seat</th>
-                <th className="p-4">Level</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Settlement Time</th>
-                <th className="p-4">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-sm">
-              {rewards.map((r: any) => (
-                <tr key={r.id} className="hover:bg-white/2 transition-colors">
-                  <td className="p-4 font-mono text-xs">{r.wallet_address.slice(0, 10)}...</td>
-                  <td className="p-4 font-bold">{r.seat_number}</td>
-                  <td className="p-4"><span className="bg-white/5 px-2 py-1 rounded text-xs">{r.level_code}</span></td>
-                  <td className="p-4 font-bold text-brand-primary">{r.reward_amount} U</td>
-                  <td className="p-4">
-                    <span className={cn(
-                      "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
-                      r.settlement_status === 'settled' ? "bg-brand-primary/10 text-brand-primary" : "bg-yellow-400/10 text-yellow-400"
-                    )}>{r.settlement_status}</span>
-                  </td>
-                  <td className="p-4 text-xs text-gray-400">{new Date(r.default_settlement_time).toLocaleString()}</td>
-                  <td className="p-4">
-                    <div className="flex gap-2">
-                      {r.settlement_status === 'scheduled' && (
-                        <>
-                          <button 
-                            onClick={async () => {
-                              await apiCall(`/admin/rewards/${r.id}/action`, {
-                                method: 'POST',
-                                body: JSON.stringify({ action: 'early_settle', reason: 'Admin Manual override' })
-                              });
-                              window.location.reload();
-                            }}
-                            className="bg-brand-primary/20 text-brand-primary text-[10px] px-2 py-1 rounded"
-                          >Settle Now</button>
-                          <button 
-                             onClick={async () => {
-                              await apiCall(`/admin/rewards/${r.id}/action`, {
-                                method: 'POST',
-                                body: JSON.stringify({ action: 'cancel', reason: 'Disqualified' })
-                              });
-                              window.location.reload();
-                            }}
-                            className="bg-red-500/20 text-red-500 text-[10px] px-2 py-1 rounded"
-                          >Cancel</button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        <div className="lg:col-span-2">
+          <div className="apple-card p-0 overflow-hidden">
+            <div className="p-6 border-b border-divider-soft flex items-center justify-between">
+              <h3 className="text-[17px] font-semibold flex items-center gap-2">
+                <History className="w-5 h-5 text-primary" />
+                Settlement Queue
+              </h3>
+              <span className="text-[12px] text-ink-muted-48 uppercase font-bold tracking-widest">{rewards.length} Pending Distributions</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-canvas-parchment text-[12px] font-bold uppercase text-ink-muted-48 border-b border-divider-soft">
+                  <tr>
+                    <th className="p-6">User</th>
+                    <th className="p-6">Node</th>
+                    <th className="p-6">Amount</th>
+                    <th className="p-6">Status</th>
+                    <th className="p-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-divider-soft">
+                  {rewards.map((r: any) => (
+                    <tr key={r.id} className="hover:bg-surface-pearl transition-colors text-[14px]">
+                      <td className="p-6 font-mono text-ink-muted-48">{r.wallet_address.slice(0, 10)}...</td>
+                      <td className="p-6 font-semibold">#{r.seat_number}</td>
+                      <td className="p-6"><span className="bg-canvas-parchment px-2 py-1 rounded text-[12px] font-bold">{r.level_code}</span></td>
+                      <td className="p-6 font-bold text-primary">{r.reward_amount} U</td>
+                      <td className="p-6">
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
+                          r.settlement_status === 'settled' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
+                        )}>{r.settlement_status}</span>
+                      </td>
+                      <td className="p-6">
+                        <div className="flex gap-4 justify-end">
+                          {r.settlement_status === 'scheduled' && (
+                            <>
+                              <button 
+                                onClick={async () => {
+                                  await apiCall(`/admin/rewards/${r.id}/action`, {
+                                    method: 'POST',
+                                    body: JSON.stringify({ action: 'early_settle', reason: 'Admin override' })
+                                  });
+                                  window.location.reload();
+                                }}
+                                className="apple-link text-[12px] font-bold"
+                              >Settle</button>
+                              <button 
+                                 onClick={async () => {
+                                  await apiCall(`/admin/rewards/${r.id}/action`, {
+                                    method: 'POST',
+                                    body: JSON.stringify({ action: 'cancel', reason: 'System Disqualified' })
+                                  });
+                                  window.location.reload();
+                                }}
+                                className="text-red-500 hover:text-red-700 text-[12px] font-bold"
+                              >Void</button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -441,43 +584,44 @@ const TeamPage = ({ user }: { user: any }) => {
   const [data, setData] = useState<any>(null);
   useEffect(() => { apiCall(`/user/${user.id}/data`).then(setData); }, [user.id]);
 
-  if (!data) return <div className="p-20 text-center">Loading team graph...</div>;
+  if (!data) return <div className="p-20 text-center animate-pulse">Scanning matrix...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-12 space-y-12 animate-apple-fade">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-4xl font-bold">Team Matrix</h2>
-        <div className="flex gap-2">
-          <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary text-[10px] font-bold rounded-full border border-brand-primary/20">Directs: {data.seats.reduce((a:any, b:any) => a + b.direct_referral_count, 0)}</span>
+        <h2 className="text-[34px] font-semibold tracking-[-0.015em]">Team Network</h2>
+        <div className="flex gap-4">
+           <div className="apple-card py-2 px-4 border-primary/20">
+              <span className="text-[10px] text-ink-muted-48 uppercase font-bold block">Direct Nodes</span>
+              <span className="text-xl font-bold text-primary">{data.seats.reduce((a:any, b:any) => a + b.direct_referral_count, 0)}</span>
+           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass p-6 rounded-2xl md:col-span-1">
-          <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 tracking-widest">Seat Distribution</h3>
-          <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="apple-card md:col-span-1">
+          <h3 className="text-[14px] font-bold text-ink-muted-48 uppercase mb-6 tracking-widest">Growth Distribution</h3>
+          <div className="space-y-6">
             {['V1', 'V2', 'V3', 'V4', 'V5'].map(lv => (
-              <div key={lv} className="flex items-center justify-between">
-                <span className="text-xs font-mono">{lv} Qualified</span>
-                <div className="flex items-center gap-2">
-                   <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-brand-primary" style={{ width: '20%' }} />
-                   </div>
-                   <span className="text-xs font-bold">0</span>
+              <div key={lv} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[14px] font-medium">{lv} Qualified</span>
+                  <span className="text-[14px] font-bold">0</span>
+                </div>
+                <div className="w-full h-1 bg-canvas-parchment rounded-full overflow-hidden">
+                   <div className="h-full bg-primary" style={{ width: '0%' }} />
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="glass p-6 rounded-2xl md:col-span-2">
-          <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 tracking-widest">Downline Performance</h3>
-          <div className="h-64 flex items-center justify-center border border-dashed border-white/10 rounded-xl bg-white/2">
-             <div className="text-center">
-                <Users className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                <p className="text-xs text-gray-500">Tree view rendering...<br/>(Beta v2 Engine)</p>
-             </div>
-          </div>
+        <div className="apple-card md:col-span-2 flex flex-col justify-center items-center text-center py-24 min-h-[400px]">
+           <div className="w-16 h-16 rounded-full bg-canvas-parchment flex items-center justify-center mb-6">
+              <Users className="w-8 h-8 text-ink-muted-48" />
+           </div>
+           <h3 className="text-[21px] font-semibold mb-2">Network Visualizer</h3>
+           <p className="text-ink-muted-48 max-w-xs">Your downline structure is being indexed. Check back shortly for the interactive graph.</p>
         </div>
       </div>
     </div>
@@ -486,71 +630,104 @@ const TeamPage = ({ user }: { user: any }) => {
 
 const EarningsPage = ({ user }: { user: any }) => {
   const [data, setData] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   useEffect(() => { apiCall(`/user/${user.id}/data`).then(setData); }, [user.id]);
 
   if (!data) return <div className="p-20 text-center">Loading ledger...</div>;
 
+  const filteredEarnings = data.earnings.filter((e: any) => {
+    const matchesSearch = e.level_code.toLowerCase().includes(search.toLowerCase()) || 
+                         `#N${e.seat_id}`.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || e.settlement_status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-4xl font-bold">Transactions & Earnings</h2>
-        <div className="flex gap-4">
-           <div className="glass px-4 py-2 rounded-xl">
-              <span className="text-[10px] text-gray-500 uppercase font-bold block">Current Balance</span>
-              <span className="text-xl font-bold text-brand-primary">{data.balance} U</span>
-           </div>
+    <div className="max-w-7xl mx-auto px-6 py-12 space-y-12 animate-apple-fade">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-[34px] font-semibold tracking-[-0.015em]">Earnings History</h2>
+          <p className="text-ink-muted-48 mt-1 italic text-sm">Indexed ledger of all protocol distributions.</p>
+        </div>
+        <div className="apple-card py-2 px-6 border-primary/20">
+           <span className="text-[10px] text-ink-muted-48 uppercase font-bold block">Current Assets</span>
+           <span className="text-xl font-bold text-primary">{data.balance} U</span>
         </div>
       </div>
 
-      <div className="glass rounded-3xl overflow-hidden border border-white/5">
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted-48" />
+          <input 
+            type="text" 
+            placeholder="Search by Rank or Node ID..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-canvas-parchment border border-divider-soft rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary/20"
+          />
+        </div>
+        <div className="relative flex-shrink-0 w-full sm:w-48">
+          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted-48" />
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full bg-canvas-parchment border border-divider-soft rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none appearance-none"
+          >
+            <option value="all">All Status</option>
+            <option value="settled">Settled</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="cancelled">Void</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="apple-card p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-white/2 text-[10px] font-bold uppercase text-gray-500 border-b border-white/10">
+            <thead className="bg-canvas-parchment text-[12px] font-bold uppercase text-ink-muted-48 border-b border-divider-soft">
               <tr>
-                <th className="p-4">Type</th>
-                <th className="p-4">Reference</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Time</th>
+                <th className="p-6">Type</th>
+                <th className="p-6">ID</th>
+                <th className="p-6">Amount</th>
+                <th className="p-6">Status</th>
+                <th className="p-6">Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
-              {data.earnings.map((e: any) => (
-                <tr key={e.id} className="hover:bg-white/2 transition-colors group">
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-brand-primary" />
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold block">{e.level_code} Reward</span>
-                        <span className="text-[10px] text-gray-500 uppercase">Yield Distribution</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-xs font-mono text-gray-400">REF#{e.seat_id}</span>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-sm font-bold text-white">+{e.reward_amount} U</span>
-                  </td>
-                  <td className="p-4">
-                     <div className="flex items-center gap-1.5">
-                       <div className={cn(
-                         "w-1.5 h-1.5 rounded-full",
-                         e.settlement_status === 'settled' ? "bg-brand-primary" : "bg-yellow-400"
-                       )} />
-                       <span className={cn(
-                          "text-[10px] font-bold uppercase",
-                          e.settlement_status === 'settled' ? "text-brand-primary" : "text-yellow-400"
-                        )}>{e.settlement_status}</span>
-                     </div>
-                  </td>
-                  <td className="p-4 text-xs text-gray-500 font-mono">
-                    {new Date(e.created_at).toLocaleString()}
-                  </td>
+            <tbody className="divide-y divide-divider-soft">
+              {filteredEarnings.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-20 text-center text-ink-muted-48 italic">No distributions found matching your criteria.</td>
                 </tr>
-              ))}
+              ) : (
+                filteredEarnings.map((e: any) => (
+                  <tr key={e.id} className="hover:bg-surface-pearl transition-colors">
+                    <td className="p-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <span className="text-[17px] font-semibold block">{e.level_code} System Reward</span>
+                          <span className="text-[12px] text-ink-muted-48">Yield Distribution</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-6 font-mono text-[14px] text-ink-muted-48">#N{e.seat_id}</td>
+                    <td className="p-6 text-[17px] font-semibold tracking-tight text-ink">+{e.reward_amount} U</td>
+                    <td className="p-6 text-[14px]">
+                       <span className={cn(
+                          "px-3 py-1 rounded-full font-semibold uppercase text-[10px]",
+                          e.settlement_status === 'settled' ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
+                        )}>{e.settlement_status}</span>
+                    </td>
+                    <td className="p-6 text-[14px] text-ink-muted-48">
+                      {new Date(e.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -563,29 +740,40 @@ const InvitePage = ({ user }: { user: any }) => {
   const inviteUrl = `${window.location.origin}/?ref=${user.seats[0]?.id || ''}`;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-8">
-      <div className="w-20 h-20 bg-brand-primary/10 rounded-3xl flex items-center justify-center mx-auto border border-brand-primary/20">
-         <Users className="w-10 h-10 text-brand-primary" />
+    <div className="max-w-xl mx-auto px-6 py-20 space-y-12 animate-apple-fade text-center">
+      <div className="space-y-4">
+        <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-8">
+           <Users className="w-10 h-10 text-primary" />
+        </div>
+        <h2 className="text-[40px] font-semibold tracking-[-0.015em]">Grow the Matrix</h2>
+        <p className="text-[21px] text-ink-muted-48">Expand your network to unlock collective rewards and accelerate your rank.</p>
       </div>
-      <h2 className="font-display text-4xl font-bold">Invite Your Team</h2>
-      <p className="text-gray-400">Share your referral link to build your direct network and qualify for V1-V10 rewards.</p>
-      
-      <div className="glass p-6 rounded-2xl space-y-4">
-        <div className="bg-white/5 p-4 rounded-xl font-mono text-sm break-all border border-white/10">
-          {inviteUrl}
+
+      <div className="apple-card space-y-6">
+        <div className="text-left">
+           <span className="text-[12px] text-ink-muted-48 uppercase font-bold tracking-widest block mb-2">Referral Link</span>
+           <div className="bg-canvas-parchment p-4 rounded-xl font-mono text-[14px] text-primary break-all border border-divider-soft">
+             {inviteUrl}
+           </div>
         </div>
         <button 
-          onClick={() => { navigator.clipboard.writeText(inviteUrl); alert('Link copied!'); }}
-          className="w-full bg-brand-primary text-bg-dark font-bold py-3 rounded-xl hover:brightness-110 active:scale-95 transition-all"
+          onClick={() => { navigator.clipboard.writeText(inviteUrl); alert('Copied to clipboard'); }}
+          className="btn-apple-primary w-full py-4 text-lg"
         >
-          Copy Referral Link
+          Copy Share Link
         </button>
       </div>
 
-      <div className="p-8 glass rounded-3xl border-dashed border-2 flex items-center justify-center h-48">
-         <p className="text-xs text-gray-500 font-bold uppercase tracking-widest leading-loose">
-            QR Code Generator<br/>In Beta Production
-         </p>
+      <div className="apple-card py-16 flex flex-col items-center justify-center border-dashed">
+         <div className="p-4 bg-white rounded-2xl shadow-sm mb-6 border border-divider-soft">
+            <QRCodeSVG 
+              value={inviteUrl} 
+              size={160}
+              level="H"
+              includeMargin={false}
+            />
+         </div>
+         <p className="text-[14px] text-ink-muted-48 font-medium">Scan to join the matrix</p>
       </div>
     </div>
   );
@@ -617,23 +805,28 @@ export default function App() {
     localStorage.removeItem('matrix_user');
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-display text-2xl font-bold animate-pulse">Initializing Ecosystem...</div>;
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center">
+      <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen pb-20">
+      <div className="min-h-screen relative bg-canvas text-ink antialiased">
         <Navbar user={user} onLogout={handleLogout} />
         
         <AnimatePresence mode="wait">
           {!user ? (
-            <Landing onLogin={handleLogin} />
+            <Landing onLogin={handleLogin} key="landing" />
           ) : (
             <motion.div
               layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+              className="pt-[96px] pb-20"
             >
               <Routes>
                 <Route path="/" element={<Dashboard user={user} />} />
@@ -642,7 +835,6 @@ export default function App() {
                 <Route path="/admin" element={<AdminPanel />} />
                 <Route path="/team" element={<TeamPage user={user} />} />
                 <Route path="/earnings" element={<EarningsPage user={user} />} />
-                <Route path="/transactions" element={<EarningsPage user={user} />} />
                 <Route path="/invite" element={<InvitePage user={user} />} />
               </Routes>
             </motion.div>
@@ -650,8 +842,8 @@ export default function App() {
         </AnimatePresence>
 
         {user && user.role === 'test' && (
-          <div className="fixed bottom-0 left-0 right-0 bg-yellow-400 text-bg-dark font-bold text-center py-1 text-[10px] uppercase tracking-[0.2em] shadow-2xl z-50">
-            Internal Test Mode Active &bull; Rule Version: {user.config_version || 'DEV'}
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 apple-card px-6 py-2 rounded-full border-primary/20 text-primary font-bold text-[11px] uppercase tracking-[0.1em] shadow-xl z-50">
+            Internal Test Instance &bull; Kernel v{user.config_version || '2.0'}
           </div>
         )}
       </div>

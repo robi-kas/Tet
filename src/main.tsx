@@ -9,6 +9,19 @@ import './index.css';
 
 const queryClient = new QueryClient();
 
+if (typeof window !== 'undefined') {
+  const originalError = console.error;
+  console.error = (...args) => {
+    if (args[0] && typeof args[0] === 'string' && (
+      args[0].includes('Aave Account') || 
+      args[0].includes('EIP1193 provider connection timeout')
+    )) {
+      return;
+    }
+    originalError.apply(console, args);
+  };
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <WagmiProvider config={config}>

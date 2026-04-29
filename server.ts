@@ -530,6 +530,37 @@ async function startServer() {
     res.json(await dbAdapter.query('SELECT r.*, u.wallet_address, s.seat_number FROM reward_settlement r JOIN users u ON r.user_id = u.id JOIN seats s ON r.seat_id = s.id ORDER BY r.created_at DESC'));
   });
 
+  app.post('/api/admin/user/:userId/upgrade', async (req, res) => {
+    const { userId } = req.params;
+    const { targetLevel } = req.body;
+    
+    try {
+      const seat = await dbAdapter.get('SELECT * FROM seats WHERE user_id = ? ORDER BY id ASC LIMIT 1', [userId]);
+      if (!seat) return res.status(404).json({ error: 'User has no seats' });
+
+      const level = await dbAdapter.get('SELECT * FROM level_config WHERE level_code = ?', [targetLevel]);
+      if (!level) return res.status(404).json({ error: 'Level not found' });
+
+      await dbAdapter.execute('UPDATE seats SET current_level = ? WHERE id = ?', [targetLevel, seat.id]);
+      
+      if (level.reward_amount > 0) {
+        const settlementTime = addDays(new Date(), level.reward_settlement_days);
+        const result = await dbAdapter.execute(`
+          INSERT INTO reward_settlement (user_id, seat_id, level_code, reward_amount, settlement_days, default_settlement_time)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [userId, seat.id, targetLevel, level.reward_amount, level.reward_settlement_days, settlementTime.toISOString()]);
+        
+        if (level.reward_settlement_days === 0) await triggerSettlement(result.lastInsertRowid);
+      }
+
+      await dbAdapter.execute('INSERT INTO admin_operation_logs (operation_type, target_id, reason) VALUES (?, ?, ?)', ['manual_upgrade', seat.id, `Manual upgrade to ${targetLevel}`]);
+      
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/admin/rewards/:id/action', async (req, res) => {
     const { id } = req.params;
     const { action, reason } = req.body;

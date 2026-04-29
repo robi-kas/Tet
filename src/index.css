@@ -1,24 +1,109 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
-  
-  --color-brand-primary: #00ff88;
-  --color-brand-secondary: #00ccff;
-  --color-bg-dark: #0a0a0a;
-  --color-card-dark: #151515;
+  --font-display: "Inter", sans-serif; /* Fallback to Inter, will tighten tracking */
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-primary: #0066cc;
+  --color-primary-focus: #0071e3;
+  --color-primary-on-dark: #2997ff;
+  --color-ink: #1d1d1f;
+  --color-ink-muted-80: #333333;
+  --color-ink-muted-48: #7a7a7a;
+  --color-canvas: #ffffff;
+  --color-canvas-parchment: #f5f5f7;
+  --color-surface-pearl: #fafafc;
+  --color-surface-tile-1: #272729;
+  --color-surface-tile-2: #2a2a2c;
+  --color-surface-tile-3: #252527;
+  --color-surface-black: #000000;
+  --color-surface-chip-translucent: #d2d2d7;
+  --color-divider-soft: rgba(0, 0, 0, 0.08);
+  --color-hairline: rgba(0, 0, 0, 0.12);
 }
 
-body {
-  @apply bg-bg-dark text-white font-sans;
+@layer base {
+  body {
+    @apply bg-canvas text-ink font-sans antialiased selection:bg-primary/30;
+    font-size: 17px;
+    line-height: 1.47;
+    letter-spacing: -0.374px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-[-0.015em];
+    line-height: 1.1;
+  }
 }
 
-.glass {
-  @apply bg-card-dark border border-white/5 backdrop-blur-sm;
+@layer components {
+  /* Apple Buttons */
+  .btn-apple-primary {
+    @apply bg-primary text-white font-sans font-normal py-[11px] px-[22px] rounded-full transition-all active:scale-95 text-[17px] inline-flex items-center justify-center;
+  }
+
+  .btn-apple-secondary {
+    @apply bg-transparent text-primary hover:bg-primary/5 font-sans font-normal py-[11px] px-[22px] rounded-full transition-all active:scale-95 text-[17px] inline-flex items-center justify-center;
+  }
+
+  .btn-apple-outline {
+    @apply bg-transparent text-primary border border-primary/30 font-sans font-normal py-[11px] px-[22px] rounded-full transition-all active:scale-95 text-[17px] inline-flex items-center justify-center;
+  }
+
+  .btn-apple-dark {
+    @apply bg-ink text-white font-sans font-normal py-[8px] px-[15px] rounded-[8px] transition-all active:scale-95 text-[14px] inline-flex items-center justify-center;
+  }
+
+  /* Tiles */
+  .apple-tile-light {
+    @apply bg-canvas text-ink py-20 px-8;
+  }
+
+  .apple-tile-parchment {
+    @apply bg-canvas-parchment text-ink py-20 px-8;
+  }
+
+  .apple-tile-dark {
+    @apply bg-surface-tile-1 text-white py-20 px-8;
+  }
+
+  /* Text Link */
+  .apple-link {
+    @apply text-primary hover:underline transition-all;
+  }
+
+  .apple-link-on-dark {
+    @apply text-primary-on-dark hover:underline transition-all;
+  }
+
+  /* Navigation */
+  .apple-nav-global {
+    @apply bg-surface-black/80 backdrop-blur-md text-white h-[44px] flex items-center justify-center fixed top-0 left-0 right-0 z-[100];
+  }
+
+  .apple-nav-sub {
+    @apply bg-canvas-parchment/80 backdrop-blur-md text-ink h-[52px] flex items-center justify-center sticky top-[44px] z-[90] border-b border-divider-soft;
+  }
+
+  /* Cards */
+  .apple-card {
+    @apply bg-canvas border border-hairline rounded-[18px] p-6 transition-all hover:border-primary/20;
+  }
 }
 
-.gradient-text {
-  @apply bg-clip-text text-transparent bg-linear-to-r from-brand-primary to-brand-secondary;
+/* Custom shadow for product renders */
+.product-shadow {
+  box-shadow: rgba(0, 0, 0, 0.22) 3px 5px 30px 0px;
+}
+
+/* Animations */
+@keyframes apple-fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-apple-fade {
+  animation: apple-fade-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
